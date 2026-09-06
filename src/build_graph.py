@@ -55,6 +55,10 @@ def compute_pmi(term_a: str, term_b: str, chat_keywords: list[dict]) -> float:
     Each chat contributes at most once to co-occurrence, matching the graph's
     intra-chat pairing logic. Returns ``float('-inf')`` when the terms never
     co-occur in the same chat.
+
+    This is a standalone function (independent of ``build_cooccurrence_graph``)
+    so you can inspect or tune the PMI signal for any two terms without
+    rebuilding the whole graph.
     """
     if term_a == term_b:
         return float("inf")
@@ -79,7 +83,12 @@ def compute_pmi(term_a: str, term_b: str, chat_keywords: list[dict]) -> float:
 
 
 def pmi_boost(pmi: float) -> float:
-    """Non-negative PMI contribution used as an edge-weight boost."""
+    """Non-negative PMI contribution used as an edge-weight boost.
+
+    Negative PMI (terms co-occur less than chance) and undefined/degenerate
+    values contribute nothing, so only positive statistical correlation adds
+    extra weight on top of raw intra-chat co-occurrence counts.
+    """
     if math.isinf(pmi) and pmi > 0:
         return 0.0
     if math.isnan(pmi) or math.isinf(pmi):
@@ -92,7 +101,18 @@ def build_cooccurrence_graph(
     *,
     min_chat_count: int = 2,
 ) -> nx.Graph:
-    """Build an undirected keyword graph from per-chat keyword lists."""
+    """Build an undirected keyword graph from per-chat keyword lists.
+
+    - One node per unique keyword, with a ``chat_count`` attribute (number of
+      chats the keyword appears in).
+    - One edge per pair of keywords that co-occur in at least one chat, with
+      ``cooccurrence`` (raw intra-chat co-occurrence count), ``pmi``
+      (pointwise mutual information across the corpus), ``pmi_boost`` (the
+      non-negative part of PMI), and ``weight`` = cooccurrence + pmi_boost.
+    - Nodes appearing in fewer than ``min_chat_count`` chats are dropped
+      before edges are computed, so one-off noise keywords don't pollute the
+      graph or count toward any other keyword's co-occurrence total.
+    """
     total_chats = len(chat_keywords)
     chat_counts = compute_chat_counts(chat_keywords)
     kept_terms = {term for term, count in chat_counts.items() if count >= min_chat_count}

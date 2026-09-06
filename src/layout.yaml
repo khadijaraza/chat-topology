@@ -1,0 +1,12 @@
+# Layout coordinate normalization range.
+#
+# compute_layout() (src/layout.py) runs a force-directed spring layout and
+# then rescales it so the larger of the x-extent / y-extent fits exactly
+# within [-coordinate_range, +coordinate_range]; the other axis is scaled by
+# the same factor, preserving aspect ratio (so clusters don't get stretched).
+#
+# These values are used directly as world coordinates in the Three.js scene,
+# so treat this as the contract between the Python layout pipeline and the
+# frontend. If you change this, the frontend camera/scene bounds need to
+# match.
+coordinate_range: 100.0 run 
