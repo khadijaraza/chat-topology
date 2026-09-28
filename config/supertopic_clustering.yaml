@@ -1,0 +1,30 @@
+# Second-level clustering: group concept nodes into a small, fixed number of
+# broader "super-topics" for graph legibility. See src/supertopic_clustering.py.
+#
+# Unlike concept clustering (HDBSCAN, natural cluster count, some keywords
+# left unclustered), this layer needs a HARD cap on cluster count so the
+# frontend's zoomed-out/collapsed view stays readable -- so it uses
+# agglomerative clustering with a fixed target count instead, and every
+# concept is force-assigned to some super-topic (no "noise" bucket here;
+# a few super-topics will look like an arbitrary catch-all as a result --
+# that's an expected tradeoff of a hard count cap, not a bug).
+
+# Reuses the same embedding model as concept clustering, run over the much
+# smaller set of concept labels (~5-6k) rather than raw keywords (~36k).
+model_name: all-mpnet-base-v2
+
+# Target number of super-topics. Kept comfortably under 100 so the
+# collapsed/zoomed-out view reads as a legible overview, not a second wall
+# of nodes.
+n_clusters: 80
+
+# Agglomerative clustering linkage strategy. Tried "average" (UPGMA) first;
+# on the real 5,521-concept graph it produced one enormous, semantically
+# vague catch-all (1,472 concepts, 27% of the whole graph, labeled "reason"
+# but containing everything from "abbreviation" to "academy" to "accent")
+# plus several other oversized, incoherent clusters -- a known failure mode
+# of average-linkage with a hard cluster-count cap on heterogeneous data.
+# "ward" minimizes within-cluster variance instead, which tends to produce
+# more compact, balanced clusters rather than a few blobs absorbing
+# everything vaguely similar.
+linkage: ward

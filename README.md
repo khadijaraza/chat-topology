@@ -56,10 +56,19 @@ deactivate
 
 ## Pipeline
 
+Add exported JSON files to `data/raw/` before ingesting, then run in order:
+
 ```bash
 source venv/bin/activate
-python scripts/run_ingest.py
-python scripts/run_extraction.py
+
+python scripts/run_ingest.py              # raw exports -> data/processed/conversations.json
+python scripts/run_phrase_detection.py    # -> data/processed/phrases.json (review before continuing)
+python scripts/run_extraction.py          # -> data/processed/chat_keywords.json
+python scripts/run_graph_build.py         # -> data/processed/graph.gpickle
+python scripts/run_layout.py              # -> data/processed/layout.json + layout_preview.png
+python scripts/run_layout_interactive.py  # optional: data/processed/layout_interactive.html (pan/zoom/hover)
 ```
 
-Add exported JSON files to `data/raw/` before ingesting.
+Each step prints a summary meant to be reviewed before moving to the next — especially `run_phrase_detection.py`'s output, since bad phrase merges propagate into every downstream node and edge.
+
+See `CLAUDE.md` for project context, design decisions, and current milestone status.

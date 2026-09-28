@@ -4,10 +4,51 @@ from __future__ import annotations
 
 import math
 from collections import Counter
+from functools import lru_cache
 from itertools import combinations
+from pathlib import Path
 from typing import Iterable
 
 import networkx as nx
+import yaml
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_GRAPH_CONFIG_PATH = PROJECT_ROOT / "config" / "graph.yaml"
+
+# Fallbacks used only if config/graph.yaml is missing or malformed.
+FALLBACK_MIN_CHAT_COUNT = 2
+FALLBACK_MAX_EDGES_PER_NODE = None
+
+
+@lru_cache(maxsize=1)
+def get_graph_config(path: str = str(DEFAULT_GRAPH_CONFIG_PATH)) -> tuple[int, int | None]:
+    """Load min_chat_count / max_edges_per_node from config/graph.yaml.
+
+    Returns (min_chat_count, max_edges_per_node); max_edges_per_node is
+    None when pruning is disabled (either by config or a missing file).
+    """
+    config_path = Path(path)
+    if not config_path.is_file():
+        return FALLBACK_MIN_CHAT_COUNT, FALLBACK_MAX_EDGES_PER_NODE
+
+    with config_path.open(encoding="utf-8") as handle:
+        payload = yaml.safe_load(handle) or {}
+
+    try:
+        min_chat_count = int(payload.get("min_chat_count", FALLBACK_MIN_CHAT_COUNT))
+    except (TypeError, ValueError):
+        min_chat_count = FALLBACK_MIN_CHAT_COUNT
+
+    raw_max_edges = payload.get("max_edges_per_node", FALLBACK_MAX_EDGES_PER_NODE)
+    if raw_max_edges is None:
+        max_edges_per_node = None
+    else:
+        try:
+            max_edges_per_node = int(raw_max_edges)
+        except (TypeError, ValueError):
+            max_edges_per_node = FALLBACK_MAX_EDGES_PER_NODE
+
+    return min_chat_count, max_edges_per_node
 
 
 def terms_in_chat(entry: dict) -> set[str]:
@@ -96,10 +137,44 @@ def pmi_boost(pmi: float) -> float:
     return max(0.0, pmi)
 
 
+def prune_edges_to_top_k_per_node(graph: nx.Graph, max_edges_per_node: int) -> nx.Graph:
+    """Keep an edge only if it's among one of its endpoints' strongest
+    ``max_edges_per_node`` edges by weight.
+
+    ``min_chat_count`` alone doesn't bound total edge count: a single
+    keyword-rich chat contributes ``C(k, 2)`` edges for its ``k`` surviving
+    keywords, so a handful of very long conversations can still make the
+    graph near-complete regardless of how aggressively one-off keywords are
+    filtered (on real data: 823 chats, min_chat_count=2, produced 10,316
+    nodes but 7,886,476 edges -- one 2,892-keyword chat alone accounts for
+    ~4.2M possible pairs). Keeping an edge if it's in *either* endpoint's
+    top-K (rather than requiring both) avoids starving a node that has one
+    dominant tie to a very well-connected partner. Bounds total edges to at
+    most ``N * max_edges_per_node``.
+    """
+    keep: set[frozenset[str]] = set()
+    for node in graph.nodes:
+        strongest = sorted(
+            graph.edges(node, data="weight"),
+            key=lambda item: item[2],
+            reverse=True,
+        )
+        for term_a, term_b, _weight in strongest[:max_edges_per_node]:
+            keep.add(frozenset((term_a, term_b)))
+
+    pruned = nx.Graph()
+    pruned.add_nodes_from(graph.nodes(data=True))
+    for term_a, term_b, data in graph.edges(data=True):
+        if frozenset((term_a, term_b)) in keep:
+            pruned.add_edge(term_a, term_b, **data)
+    return pruned
+
+
 def build_cooccurrence_graph(
     chat_keywords: list[dict],
     *,
-    min_chat_count: int = 2,
+    min_chat_count: int | None = None,
+    max_edges_per_node: int | None = None,
 ) -> nx.Graph:
     """Build an undirected keyword graph from per-chat keyword lists.
 
@@ -112,7 +187,21 @@ def build_cooccurrence_graph(
     - Nodes appearing in fewer than ``min_chat_count`` chats are dropped
       before edges are computed, so one-off noise keywords don't pollute the
       graph or count toward any other keyword's co-occurrence total.
+    - If ``max_edges_per_node`` is set, edges are then pruned to each node's
+      strongest ties (see prune_edges_to_top_k_per_node) -- necessary on top
+      of min_chat_count, see that function's docstring for why.
+
+    ``min_chat_count`` / ``max_edges_per_node`` default to config/graph.yaml
+    when not given explicitly (pass a number to override for one-off tuning
+    without touching the config file; max_edges_per_node=None disables
+    pruning).
     """
+    config_min_chat_count, config_max_edges_per_node = get_graph_config()
+    if min_chat_count is None:
+        min_chat_count = config_min_chat_count
+    if max_edges_per_node is None:
+        max_edges_per_node = config_max_edges_per_node
+
     total_chats = len(chat_keywords)
     chat_counts = compute_chat_counts(chat_keywords)
     kept_terms = {term for term, count in chat_counts.items() if count >= min_chat_count}
@@ -143,6 +232,9 @@ def build_cooccurrence_graph(
             pmi_boost=boost,
             weight=intra_weight + boost,
         )
+
+    if max_edges_per_node is not None:
+        graph = prune_edges_to_top_k_per_node(graph, max_edges_per_node)
 
     return graph
 

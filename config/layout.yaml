@@ -9,4 +9,4 @@
 # so treat this as the contract between the Python layout pipeline and the
 # frontend. If you change this, the frontend camera/scene bounds need to
 # match.
-coordinate_range: 100.0 run 
+coordinate_range: 100.0
