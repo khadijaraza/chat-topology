@@ -1,0 +1,17 @@
+# Keyword co-occurrence graph construction thresholds.
+# See build_cooccurrence_graph() in src/build_graph.py.
+
+# Drop keywords appearing in fewer than this many distinct chats before
+# edges are computed, so one-off/incidental mentions don't pollute the
+# graph or inflate any other keyword's co-occurrence total.
+min_chat_count: 3
+
+# After full edge weights are computed, keep only each node's strongest
+# max_edges_per_node edges by weight (see prune_edges_to_top_k_per_node).
+# This is what actually bounds total edge count -- min_chat_count alone
+# doesn't: a single very long chat can pair hundreds of surviving keywords
+# together in one sitting, contributing C(k, 2) edges by itself regardless
+# of how aggressively one-off keywords are filtered. Set to null to disable
+# pruning entirely (not recommended on a corpus with long chats -- see the
+# function docstring for what happened without it).
+max_edges_per_node: 40

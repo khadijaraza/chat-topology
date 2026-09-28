@@ -1,0 +1,74 @@
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #0b0d17;
+  font: 14px/1.4 system-ui, "Segoe UI", Roboto, sans-serif;
+  color: #e6e6f0;
+  overflow: hidden;
+}
+
+canvas {
+  display: block;
+}
+
+.scene-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 0 24px;
+  text-align: center;
+}
+
+.legend {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  padding: 8px 12px;
+  background: rgba(15, 17, 30, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.legend-title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.back-button {
+  display: block;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  background: rgba(255, 179, 71, 0.15);
+  border: 1px solid rgba(255, 179, 71, 0.5);
+  border-radius: 4px;
+  color: #ffb347;
+  font-size: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.back-button:hover {
+  background: rgba(255, 179, 71, 0.3);
+}
+
+.node-label {
+  padding: 3px 8px;
+  background: rgba(15, 17, 30, 0.9);
+  border: 1px solid rgba(255, 179, 71, 0.6);
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  transform: translate(-50%, -140%);
+}

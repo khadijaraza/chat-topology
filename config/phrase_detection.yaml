@@ -1,0 +1,37 @@
+# Corpus-level phrase (compound keyword) detection.
+#
+# Two content words are promoted to a single compound keyword (e.g.
+# "machine" + "learning" -> "machine learning") only when they co-occur
+# ADJACENT to each other, across the WHOLE corpus, far more often than
+# chance would predict. This is independent of spaCy's noun-chunk/entity
+# heuristics, which only look at one sentence at a time and can't tell a
+# genuine recurring compound from two nouns that happened to sit next to
+# each other once. It's also how "prompt engineering" or "vector database"
+# get recognized even though spaCy's NER has no entity label for them.
+#
+# min_pair_count: minimum number of times the two words must appear
+#   adjacently (in that order) across the corpus to even be considered.
+#   Raise this on larger datasets to require more evidence.
+min_pair_count: 5
+
+# min_npmi: minimum normalized pointwise mutual information, range -1..1
+#   (0 = independent, 1 = always co-occur together and only together).
+#   Higher = stricter = fewer, more confident phrases.
+min_npmi: 0.55
+
+# max_phrase_words: cap on compound length. Phrases are built up in passes
+# (bigrams first, then bigrams-of-bigrams), so e.g. "machine learning" +
+# "model" can become "machine learning model" if that pairing also clears
+# the threshold.
+max_phrase_words: 3
+
+# redundancy_ratio: after detection, a shorter phrase P is dropped if a
+# longer accepted phrase L contains P as a contiguous sub-sequence AND
+# count(L) / count(P) >= this ratio -- i.e. almost every occurrence of P is
+# actually an occurrence of the more specific L, so P adds no independent
+# signal (example: "uc san" gets dropped once "uc san diego" is found,
+# because every "uc san" IS "uc san diego" here). Lower this if you want
+# fewer things pruned; raise it to prune more aggressively. A short phrase
+# that occurs often on its own (like "san diego" outside of "uc san diego")
+# stays, since its ratio against the longer phrase will be well below this.
+redundancy_ratio: 0.85

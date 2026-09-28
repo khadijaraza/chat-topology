@@ -1,0 +1,19 @@
+# Manual synonym / alias groups.
+#
+# This is for equivalences that PMI/phrase detection (phrase_detection.yaml)
+# structurally can't find, because the terms don't sit adjacent to each
+# other in text -- acronyms, abbreviations, and closely related tools or
+# names you consider the same topic. Only you can make this call, so it's
+# a plain manual list rather than anything statistical.
+#
+# Format: canonical_term: [alias1, alias2, ...]
+# - Keys and aliases should be lowercase, matching how extract_keywords.py
+#   normalizes terms (lemmatized, lowercased, whitespace-collapsed).
+# - Every alias is merged into its canonical term's count during
+#   extraction; the alias itself never appears as its own graph node.
+# - If an alias is itself claimed as a canonical term elsewhere, that's a
+#   conflict -- fix it here, extraction will warn but not silently pick one.
+aliases:
+  git: [github]
+  uc san diego: [ucsd, uc san, university of california san diego]
+  machine learning: [ml]

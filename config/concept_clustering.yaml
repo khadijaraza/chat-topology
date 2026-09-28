@@ -1,0 +1,50 @@
+# Semantic clustering of extracted keywords into concept nodes.
+# See src/concept_clustering.py -- this runs between extraction and graph
+# build: scripts/run_concept_clustering.py turns chat_keywords.json into
+# chat_concepts.json (same shape, concept-grouped), which graph build then
+# treats exactly like it used to treat raw keywords.
+#
+# Keywords are embedded with a sentence-transformers model (semantic
+# similarity -- keywords group by meaning even if they never co-occur in a
+# chat), then grouped with HDBSCAN density clustering rather than a fixed
+# keyword-count (e.g. k-means): the keyword distribution here is heavily
+# power-law skewed (a few huge, obvious clusters; a long tail of rare,
+# unrelated terms), and forcing a fixed number of clusters would either
+# smear the tail into false groupings or fragment the head. HDBSCAN finds
+# its own number of clusters and explicitly labels sparse points as noise
+# instead of forcing them into a nearby cluster.
+
+# Sentence-transformers model name (downloaded once, cached locally under
+# ~/.cache). all-MiniLM-L6-v2 (~80MB) was tried first but wasn't strong
+# enough: on the real 35,781-keyword corpus it only merged 32% of keywords
+# into a real cluster, and produced at least one clear polysemy collision
+# ("fingertip" merged with "pro tip" -- no sentence context to disambiguate
+# senses of "tip" on short decontextualized phrases) that no amount of
+# min_cluster_size/min_samples tuning could separate, proving it was an
+# embedding-space limitation, not a density-threshold one. all-mpnet-base-v2
+# (~420MB) is the standard stronger general-purpose sentence-transformers
+# model -- slower CPU inference, but should meaningfully improve semantic
+# quality for short phrases.
+model_name: all-mpnet-base-v2
+
+# HDBSCAN: minimum number of member keywords for a group to count as a real
+# concept rather than noise. Lower = more, smaller/narrower concepts;
+# higher = fewer, broader concepts.
+#
+# min_cluster_size=3 / min_samples=null (== 3) on the real 35,781-keyword
+# corpus only merged 30% of keywords into a real cluster (1,651 clusters),
+# and a few clusters mixed unrelated senses of the same word (e.g. "hand" /
+# "finger" / "fingertip" merged with "pro tip" / "key tips" -- the small
+# embedding model has no sentence context to disambiguate "tip" the digit
+# from "tip" the piece of advice on short decontextualized phrases).
+# Lowering min_cluster_size while RAISING min_samples above it is HDBSCAN's
+# standard way to get smaller clusters without just flooding into noise:
+# min_samples controls how dense a neighborhood must be to seed a cluster
+# at all (higher = more conservative, more noise, tighter/purer clusters),
+# while min_cluster_size only filters the *minimum size* of what survives.
+min_cluster_size: 2
+
+# See min_cluster_size comment above -- kept above min_cluster_size on
+# purpose so small clusters still have to be genuinely dense, not just
+# barely-not-noise pairs.
+min_samples: 3

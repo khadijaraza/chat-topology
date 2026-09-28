@@ -1,0 +1,21 @@
+# Weights for combining the three height (Z) sub-metrics into one score.
+# See compute_height_scores() in src/height_score.py.
+#
+# Each of frequency/depth/sustained_focus is independently log1p-normalized
+# (the raw distributions are heavily right-skewed) then min-max scaled to
+# [0, 1] before these weights are applied -- so the weights control relative
+# *importance*, not raw magnitude. They're normalized by their own sum before
+# use, so they don't strictly need to add to 1.0, but keeping them summing to
+# 1.0 makes the numbers easier to reason about at a glance.
+weights:
+  frequency: 0.4        # distinct chats mentioning the topic
+  depth: 0.3            # total word count (prompts+responses) across those chats
+  sustained_focus: 0.3  # word count of the single longest chat mentioning it
+
+# Final Z-axis (height) range, in world units: scores are scaled to
+# [0, z_range]. Paired with coordinate_range in config/layout.yaml, which
+# spans the X/Y axes to [-100, 100] -- a 200-unit-wide, 50-unit-tall scene by
+# default. Z is intentionally flatter than the horizontal spread (topics
+# should read as a landscape, not a forest of spikes); if you change this,
+# reconsider z_range alongside it rather than independently.
+z_range: 50.0

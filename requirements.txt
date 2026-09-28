@@ -7,4 +7,20 @@ numpy==2.5.1
 pyyaml==6.0.3
 vaderSentiment==3.3.2
 tqdm==4.68.4
+
+# nx.spring_layout (src/layout.py) requires scipy for its sparse-matrix math;
+# networkx does not pull this in automatically.
+scipy==1.18.1
+
+# scripts/run_layout.py: static PNG preview
 matplotlib==3.10.8
+
+# scripts/run_layout_interactive.py: pannable/zoomable HTML preview with hover
+plotly==7.0.0
+
+# scripts/run_concept_clustering.py: embed keywords (sentence-transformers,
+# which pulls in torch -- fully local/offline inference, no API calls) and
+# group them by meaning (hdbscan, which pulls in scikit-learn). Heavy
+# downloads (torch alone is several hundred MB) but no separate service.
+sentence-transformers==6.1.0
+hdbscan==0.8.44
