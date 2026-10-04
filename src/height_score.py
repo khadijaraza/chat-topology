@@ -1,4 +1,13 @@
-"""Compute per-topic height (Z-axis) scores from chat engagement depth."""
+"""Compute per-topic height (Z-axis) scores from chat engagement depth.
+
+Mixed file, stays in src/ root rather than moving to src/legacy/:
+get_height_config() (weights + z_range) is shared -- src/proximity_layout.py
+(current pipeline) reuses its z_range to keep segment heights on the same
+Z-axis contract as this legacy scoring. compute_height_scores() itself
+(the 3-metric frequency/depth/sustained-focus formula, which needs a
+co-occurrence graph) is legacy-only, called only by
+scripts/legacy/run_height_scores.py and scripts/legacy/run_build_output.py.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +18,7 @@ from pathlib import Path
 import networkx as nx
 import yaml
 
-from src.build_graph import terms_in_chat
+from src.legacy.build_graph import terms_in_chat
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_HEIGHT_CONFIG_PATH = PROJECT_ROOT / "config" / "height_weights.yaml"

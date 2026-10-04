@@ -1,4 +1,10 @@
-"""Build a keyword co-occurrence graph with PMI-weighted edges."""
+"""Build a keyword co-occurrence graph with PMI-weighted edges.
+
+Superseded: part of the original word-level pipeline (see CLAUDE.md's
+"Pipeline reconstruction"). Proximity (UMAP on segment embeddings, see
+src/proximity_layout.py) replaced graph edges entirely for the current
+pipeline. Kept, not deleted -- validated working code.
+"""
 
 from __future__ import annotations
 
@@ -12,17 +18,17 @@ from typing import Iterable
 import networkx as nx
 import yaml
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_GRAPH_CONFIG_PATH = PROJECT_ROOT / "config" / "graph.yaml"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_GRAPH_CONFIG_PATH = PROJECT_ROOT / "config" / "legacy" / "graph.yaml"
 
-# Fallbacks used only if config/graph.yaml is missing or malformed.
+# Fallbacks used only if config/legacy/graph.yaml is missing or malformed.
 FALLBACK_MIN_CHAT_COUNT = 2
 FALLBACK_MAX_EDGES_PER_NODE = None
 
 
 @lru_cache(maxsize=1)
 def get_graph_config(path: str = str(DEFAULT_GRAPH_CONFIG_PATH)) -> tuple[int, int | None]:
-    """Load min_chat_count / max_edges_per_node from config/graph.yaml.
+    """Load min_chat_count / max_edges_per_node from config/legacy/graph.yaml.
 
     Returns (min_chat_count, max_edges_per_node); max_edges_per_node is
     None when pruning is disabled (either by config or a missing file).
@@ -191,7 +197,7 @@ def build_cooccurrence_graph(
       strongest ties (see prune_edges_to_top_k_per_node) -- necessary on top
       of min_chat_count, see that function's docstring for why.
 
-    ``min_chat_count`` / ``max_edges_per_node`` default to config/graph.yaml
+    ``min_chat_count`` / ``max_edges_per_node`` default to config/legacy/graph.yaml
     when not given explicitly (pass a number to override for one-off tuning
     without touching the config file; max_edges_per_node=None disables
     pruning).

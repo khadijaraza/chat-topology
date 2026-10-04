@@ -1,4 +1,13 @@
-"""Compute a 2D force-directed layout for the keyword co-occurrence graph."""
+"""Compute a 2D force-directed layout for the keyword co-occurrence graph.
+
+Mixed file, stays in src/ root rather than moving to src/legacy/:
+get_coordinate_range() and normalize_positions() are shared -- both are
+generic over any {key: (x, y)} dict and src/proximity_layout.py (current
+pipeline) reuses them to rescale UMAP output to the same world-coordinate
+contract. compute_layout() itself (nx.spring_layout on a co-occurrence
+graph) is legacy-only, called only by scripts/legacy/run_layout.py and
+scripts/legacy/run_build_output.py.
+"""
 
 from __future__ import annotations
 

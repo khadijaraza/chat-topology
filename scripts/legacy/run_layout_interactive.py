@@ -18,12 +18,12 @@ from pathlib import Path
 
 import plotly.graph_objects as go
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-GRAPH_PATH = PROJECT_ROOT / "data" / "processed" / "graph.gpickle"
-LAYOUT_JSON_PATH = PROJECT_ROOT / "data" / "processed" / "layout.json"
-OUTPUT_HTML_PATH = PROJECT_ROOT / "data" / "processed" / "layout_interactive.html"
+GRAPH_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "graph.gpickle"
+LAYOUT_JSON_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "layout.json"
+OUTPUT_HTML_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "layout_interactive.html"
 
 MIN_MARKER_SIZE = 4.0
 MAX_MARKER_SIZE = 22.0
@@ -111,11 +111,11 @@ def main() -> int:
 
     if not GRAPH_PATH.is_file():
         print(f"ERROR: Missing input file: {GRAPH_PATH}", file=sys.stderr)
-        print("Run scripts/run_graph_build.py first.", file=sys.stderr)
+        print("Run scripts/legacy/run_graph_build.py first.", file=sys.stderr)
         return 1
     if not LAYOUT_JSON_PATH.is_file():
         print(f"ERROR: Missing input file: {LAYOUT_JSON_PATH}", file=sys.stderr)
-        print("Run scripts/run_layout.py first.", file=sys.stderr)
+        print("Run scripts/legacy/run_layout.py first.", file=sys.stderr)
         return 1
 
     graph = load_graph(GRAPH_PATH)

@@ -1,0 +1,66 @@
+# Topic segmentation: split each chat into discourse-cohesive segments
+# before extraction, so a chat that drifts through several unrelated
+# topics doesn't get treated as one undifferentiated bag of words. See
+# src/segmentation.py.
+
+# Reuses the same embedding model as concept/supertopic clustering --
+# already installed, no new dependency.
+model_name: all-mpnet-base-v2
+
+# Sliding window size, in turns. One user+assistant exchange is the
+# smallest natural discourse unit -- the window slides with stride 1
+# (dense, standard TextTiling-style signal), not in non-overlapping blocks.
+window_turns: 2
+
+# Chats shorter than this many turns skip shift/drift detection entirely
+# and become a single "core" segment spanning the whole chat -- the corpus
+# median is only 4 turns total, not enough length for a meaningful
+# similarity trajectory.
+min_turns_for_segmentation: 8
+
+# Matches the embedding model's own limit. Real turn lengths are heavy-
+# tailed (this corpus: median 73 words/turn, p90 522, max 3,588) -- a
+# window whose text exceeds this gets split into <=max_embedding_tokens
+# chunks and mean-pooled rather than truncated, so a single huge turn
+# doesn't silently lose its back half.
+max_embedding_tokens: 384
+
+# TextTiling-style hard-shift (valley) detection: for each candidate
+# boundary, the depth score is (local peak before it - the boundary's own
+# similarity) + (local peak after it - the boundary's own similarity).
+# hard_shift_lookback is how many windows before/after count as "local"
+# when finding those peaks.
+hard_shift_lookback: 3
+
+# A boundary counts as a hard shift only if BOTH:
+#  (a) its depth score exceeds mean(depth_scores) + hard_shift_z *
+#      std(depth_scores) for that chat -- adaptive per chat, not one fixed
+#      global cutoff, since "how cohesive is normal" varies a lot between
+#      a terse Q&A chat and a long freeform one; AND
+#  (b) its own raw similarity is below hard_shift_max_similarity (see
+#      below) -- an absolute floor, not just a relative one.
+#
+# z alone doesn't work: on real data, the longest chat (486 turns, a long
+# coherent astronomy/data-analysis session, not several unrelated topics)
+# flagged 90 of 484 candidate boundaries (18.6%) as hard shifts at z=1.0 --
+# a z-score threshold scales badly with sequence length, since longer
+# chats sample more of the trajectory's noise tail regardless of how many
+# *real* topic shifts happened. But those 90 boundaries' raw similarities
+# were genuinely below the chat's own median (0.46 vs. 0.87) -- they
+# aren't pure noise either, just natural sub-topic variation *within* one
+# coherent multi-step technical task, not real tangents. Combining z with
+# an absolute floor cut that chat to 28 flagged boundaries (5.8%) while
+# still catching a clean synthetic abrupt-topic-switch case (raw
+# similarity 0.24, far under the floor).
+hard_shift_z: 1.0
+
+# Absolute ceiling on a hard shift boundary's own raw cosine similarity --
+# see rationale above. Windows have to actually look dissimilar, not just
+# be locally lower than their (possibly noisy) neighbors.
+hard_shift_max_similarity: 0.4
+
+# Gradual drift: a boundary is flagged where similarity to the initial
+# segment's centroid has dropped by at least this much (absolute cosine
+# similarity) and stayed down for drift_min_consecutive windows in a row.
+drift_tolerance: 0.15
+drift_min_consecutive: 3

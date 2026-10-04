@@ -1,0 +1,52 @@
+# Top tier of the proximity visualization's 3-layer hierarchy (segments ->
+# conversation concepts -> macro domains). Clusters SEGMENT embeddings
+# directly via a mutual k-NN graph + Leiden community detection (Constant
+# Potts Model) -- see src/macro_domains.py's module docstring for why this
+# replaced the original fixed-count agglomerative/Ward approach (real bug:
+# a hard n_clusters cap has a genuine resolution limit that kept forcing
+# distinct communities into one oversized, incoherent domain regardless of
+# linkage; found on real data even after already fixing one earlier
+# singleton-input bug the same way once).
+
+# Mutual k-NN graph: an edge between two segments only when each is in the
+# other's top-k nearest neighbors by cosine similarity. Larger k = denser
+# graph = communities more likely to bridge into each other; smaller k =
+# sparser graph = more fragmentation into singletons. 15 mirrors
+# conversation_concepts.yaml's own scale reasoning at a similar N (908-ish
+# real communities expected out of 1,287 segments, comparable density).
+knn_k: 15
+
+# CPM's resolution parameter (gamma). Unlike Ward's fixed cluster COUNT,
+# this tunes cluster DENSITY directly -- higher gamma demands tighter
+# communities (more, smaller clusters); lower gamma accepts looser ones
+# (fewer, larger clusters). There is no "correct" gamma in the abstract;
+# tune by rereading real communities after each run, same discipline as
+# every other clustering step in this pipeline. 0.05 is a starting point
+# for cosine-similarity mutual-kNN graphs of this size, not a literature
+# default -- expect to move this once real output is reviewed.
+cpm_resolution: 0.025
+
+# A Leiden community smaller than this is routed to "Background / Minor
+# Orbit" instead of standing as its own "domain" -- a 2-3-segment community
+# is noise, not a real conceptual territory at this zoom level. This is
+# the explicit noise bucket the original approach didn't have (it force-
+# assigned every segment to SOME domain via nearest-centroid, which is
+# exactly how unrelated one-off segments ended up distorting real domains'
+# centroids and labels).
+min_community_size: 5
+
+# A segment individually below this average cosine similarity to the OTHER
+# members of its own (real-sized) community also gets routed to Background
+# -- catches a borderline/weak member that a size threshold alone wouldn't,
+# since a community can be big enough while still containing a few loosely-
+# attached segments.
+min_avg_similarity: 0.25
+
+# Each domain's label is a SINGLE highest-TF-ICF-scored term that's already
+# this many words or fewer (see label_communities_by_tf_icf in
+# src/macro_domains.py) -- one tight anchor name, not a chained list of
+# several terms (tried joining the top 3 with "&" first; real labels read
+# as noisy/long rather than a clean name, dropped that entirely). Only
+# falls back to truncating a longer term's first max_label_words words on
+# the rare community where no real extracted term is already this short.
+max_label_words: 3

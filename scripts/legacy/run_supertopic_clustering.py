@@ -5,10 +5,10 @@ Run this after run_graph_build.py -- deliberately reads graph.gpickle's
 node list, NOT concepts.json directly. concepts.json is the full,
 unfiltered output of concept clustering (tens of thousands of concepts,
 most singletons that occur in only 1-2 chats); graph.gpickle's nodes are
-what's left after config/graph.yaml's min_chat_count filter, i.e. the
+what's left after config/legacy/graph.yaml's min_chat_count filter, i.e. the
 actual ~5-6k concepts that become visible graph nodes. Clustering the
 unfiltered set pulls in massive amounts of one-off noise the graph never
-shows anyway. Output, data/processed/supertopics.json, maps each
+shows anyway. Output, data/processed/legacy/supertopics.json, maps each
 super-topic label to its member concept labels -- review before it's used
 to organize/color/drill-down the frontend. Every concept is force-assigned
 to exactly one super-topic (see src/supertopic_clustering.py for why
@@ -23,13 +23,13 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.supertopic_clustering import cluster_into_supertopics, get_supertopic_config  # noqa: E402
+from src.legacy.supertopic_clustering import cluster_into_supertopics, get_supertopic_config  # noqa: E402
 
-GRAPH_PATH = PROJECT_ROOT / "data" / "processed" / "graph.gpickle"
-SUPERTOPICS_PATH = PROJECT_ROOT / "data" / "processed" / "supertopics.json"
+GRAPH_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "graph.gpickle"
+SUPERTOPICS_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "supertopics.json"
 
 MEMBERS_PREVIEW_COUNT = 15
 
@@ -37,7 +37,7 @@ MEMBERS_PREVIEW_COUNT = 15
 def main() -> int:
     if not GRAPH_PATH.is_file():
         print(f"ERROR: Missing input file: {GRAPH_PATH}", file=sys.stderr)
-        print("Run scripts/run_graph_build.py first.", file=sys.stderr)
+        print("Run scripts/legacy/run_graph_build.py first.", file=sys.stderr)
         return 1
 
     with GRAPH_PATH.open("rb") as handle:
@@ -91,10 +91,10 @@ def main() -> int:
 
     print()
     print("BEFORE YOU MOVE ON: skim the groupings above (or the full")
-    print("data/processed/supertopics.json). Every concept is forced into some")
+    print("data/processed/legacy/supertopics.json). Every concept is forced into some")
     print("super-topic here (no unclustered/'noise' bucket), so a few may look")
     print("like an arbitrary catch-all -- that's expected with a hard cluster-")
-    print("count cap. Tune n_clusters/linkage in config/supertopic_clustering.yaml")
+    print("count cap. Tune n_clusters/linkage in config/legacy/supertopic_clustering.yaml")
     print("and rerun if the groupings don't look organized enough to be useful.")
 
     return 0

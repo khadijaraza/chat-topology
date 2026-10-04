@@ -1,0 +1,25 @@
+# Mid-tier of the proximity visualization's 3-layer hierarchy (segments ->
+# conversation concepts -> macro domains). Groups semantically similar
+# SEGMENTS (not keywords) via HDBSCAN clustering directly on each
+# segment's own embedding (data/processed/segment_embeddings.npz) -- e.g.
+# all differential-equations segments across many different chats collapse
+# into one "Linear Systems & ODEs" neighborhood. See
+# src/conversation_concepts.py.
+#
+# Density-based (HDBSCAN), not a fixed count, for the same reason as the
+# original word-level concept_clustering.py: the natural number of
+# conversation neighborhoods isn't known upfront, and some segments are
+# genuinely one-off (no real neighbors) rather than forced into a nearby
+# group.
+
+# HDBSCAN: minimum number of member segments for a group to count as a
+# real concept rather than noise. 1,287 segments is a much smaller corpus
+# than the 8,928 keywords the original concept_clustering.yaml tunes for,
+# so this needs its own smaller starting point -- refine after reviewing
+# scripts/run_conversation_concepts.py's real-data checkpoint output.
+min_cluster_size: 3
+
+# Kept above min_cluster_size on purpose (same reasoning as
+# concept_clustering.yaml): forces small clusters to still be genuinely
+# dense, not just barely-not-noise pairs.
+min_samples: 4

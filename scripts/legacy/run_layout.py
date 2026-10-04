@@ -13,14 +13,14 @@ import matplotlib
 matplotlib.use("Agg")  # headless: no display backend needed
 import matplotlib.pyplot as plt
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.layout import compute_layout, get_coordinate_range  # noqa: E402
 
-GRAPH_PATH = PROJECT_ROOT / "data" / "processed" / "graph.gpickle"
-LAYOUT_JSON_PATH = PROJECT_ROOT / "data" / "processed" / "layout.json"
-PREVIEW_PNG_PATH = PROJECT_ROOT / "data" / "processed" / "layout_preview.png"
+GRAPH_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "graph.gpickle"
+LAYOUT_JSON_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "layout.json"
+PREVIEW_PNG_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "layout_preview.png"
 
 TOP_LABEL_COUNT = 20
 
@@ -103,7 +103,7 @@ def render_preview(
 def main() -> int:
     if not GRAPH_PATH.is_file():
         print(f"ERROR: Missing input file: {GRAPH_PATH}", file=sys.stderr)
-        print("Run scripts/run_graph_build.py first.", file=sys.stderr)
+        print("Run scripts/legacy/run_graph_build.py first.", file=sys.stderr)
         return 1
 
     graph = load_graph(GRAPH_PATH)

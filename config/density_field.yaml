@@ -1,0 +1,78 @@
+# Continuous density field over the proximity layout (segments -> UMAP (x,
+# y) positions), as an ALTERNATIVE reading of the same corpus to the
+# discrete Macro Domains tier -- a Dirichlet Process Gaussian Mixture Model
+# (DPGMM) instead of hard cluster boundaries, for the case where
+# conversations genuinely blend topics and a discrete boundary is
+# artificial. See src/density_field.py's module docstring for the full
+# mechanism. Renders as a topographic surface in the frontend (recurring
+# themes read as "mountains," one-off tangents as "lowland plains") layered
+# underneath the existing point cloud, not replacing it.
+
+# Upper truncation bound on the number of mixture components. The "infinite
+# mixture" / stick-breaking framing doesn't mean literally unbounded in a
+# variational implementation (sklearn's BayesianGaussianMixture) -- you fit
+# this many candidate components and the Dirichlet process prior shrinks
+# the WEIGHT of ones the data doesn't support toward ~0 automatically (see
+# effective_component_count() in src/density_field.py).
+max_components: 60
+
+# Full covariance per component (not diagonal/spherical) -- lets each
+# density "mountain" follow the actual elongated/tilted shape of its region
+# in the UMAP layout rather than being forced into an axis-aligned blob.
+# (weight_concentration_prior_type is fixed to "dirichlet_process" in
+# src/density_field.py -- that's what makes this a DPGMM at all, not a
+# plain finite mixture -- not exposed here as a config knob.)
+covariance_type: full
+
+# The Dirichlet process concentration parameter (alpha). Real finding from
+# tuning against this corpus: this parameter ALONE could not push effective
+# component count above ~7, across a 67x range (0.3 to 20) and three
+# different initialization strategies -- not a local-optimum artifact. With
+# unconstrained full covariance, a handful of large elliptical components
+# already cover the data's broad "continents" (the same macro-scale shape
+# UMAP itself shows) at higher likelihood than many small ones; the prior
+# only matters once it's not the bottleneck, and component SIZE (below) is
+# what was actually starving the count. Kept at a moderate value since it
+# still matters some, just isn't the primary lever -- see
+# covariance_prior_scale/degrees_of_freedom_prior.
+weight_concentration_prior: 5.0
+
+# The prior covariance's scale (an isotropic eye(2) * this value, in the
+# same units as the (x, y) positions, i.e. a fraction of coordinate_range
+# = 100 from config/layout.yaml). THIS is what actually controls effective
+# component count: shrinking it from the data's own scale forces the model
+# to cover the same area with many SMALLER components instead of a few
+# large ones. Confirmed by direct sweep on real data: 1.0 -> 16 effective
+# components, 0.1 -> 21, 0.02 -> 24, 0.003 (paired with
+# degrees_of_freedom_prior below) -> 32 -- landing close to Macro Domains'
+# ~38 for a comparable "how many real territories" reading between the
+# discrete and continuous layers.
+covariance_prior_scale: 0.3
+
+# How strongly each component's covariance estimate is pulled toward the
+# (now small) covariance_prior above, versus estimated freely from its own
+# assigned points. Higher = stronger pull = tighter, more numerous
+# components. 10 paired with covariance_prior_scale: 0.3 is what produced
+# 32 effective components on real data -- these two were tuned together,
+# not independently.
+degrees_of_freedom_prior: 10.0
+
+# Resolution of the square evaluation grid (grid_resolution x
+# grid_resolution points) spanning [-coordinate_range, +coordinate_range]
+# on both axes (config/layout.yaml). Higher = smoother contours, slower to
+# compute and larger to ship to the frontend. 150 is a reasonable middle
+# ground for this segment count.
+grid_resolution: 150
+
+random_state: 42
+
+# Z-axis height range (world units) the frontend's terrain mesh scales
+# normalized_density into -- its OWN scale, not height_weights.yaml's
+# z_range (that one means topic engagement depth, a different axis of
+# meaning; reusing it here would conflate "how tall this topic reads" with
+# "how tall this terrain reads"). Set slightly below segment height's own
+# z_range (50, config/height_weights.yaml) so most points still visually
+# poke above the terrain crust they're sitting in, rather than being
+# swallowed by it.
+terrain_z_range: 40.0
+

@@ -1,0 +1,63 @@
+# Grounded, similarity-ranked keyword extraction per segment (Phase 2 of
+# the pipeline reconstruction -- see CLAUDE.md). Replaces frequency-count
+# ranking (src/extract_keywords.py's original approach) with: embed the
+# segment, embed each verbatim candidate phrase, rank candidates by
+# similarity to the segment (not how often they repeat), then diversify
+# the top ranks with MMR so near-duplicate phrases don't crowd out
+# distinct ones.
+
+# Reuses the same embedding model as every other clustering/embedding step
+# in this pipeline.
+model_name: all-mpnet-base-v2
+
+# Matches the model; segment text longer than this gets chunked +
+# mean-pooled (see src/text_embedding.py) rather than truncated.
+max_embedding_tokens: 384
+
+# How many keywords MMR selects per segment.
+top_k_per_segment: 8
+
+# MMR's relevance/diversity trade-off: mmr_score = lambda * similarity-to-
+# segment - (1 - lambda) * max-similarity-to-already-selected. Higher =
+# more relevance-focused (closer to plain top-K by similarity); lower =
+# more diversity-focused (spreads picks out even if slightly less
+# individually relevant). 0.6 leans relevance but still meaningfully
+# penalizes near-duplicates like "mrt station" / "ximen mrt" / "mrt blue
+# line" crowding out each other.
+mmr_lambda: 0.6
+
+# Candidate phrases longer than this (in words) are dropped before
+# ranking -- matches "1 to 3 words" per the reconstruction plan.
+max_phrase_words: 3
+
+# MMR's diversity penalty is max(cosine_similarity, token_jaccard_overlap)
+# against each already-selected candidate, not cosine similarity alone --
+# embedding similarity under-penalized near-duplicates like "greedy
+# algorithm" / "greedy algorithms explain" on real data. Token overlap at
+# or above this threshold forces the penalty to 1.0 (an automatic
+# near-veto) rather than just contributing to the max().
+jaccard_hard_threshold: 0.5
+
+# Corpus-frequency canonicalization (build_canonicalization_map): a rare
+# single-word variant gets remapped to a much more frequent, string-similar
+# dominant form elsewhere in the corpus (e.g. "thrifte" (1 occurrence) ->
+# "thrifted" (12 occurrences)). jaro_winkler_threshold is the minimum
+# string-similarity score to consider two terms the "same word"; 0.88 is
+# tight enough to avoid conflating genuinely different short words while
+# still catching real typos (Jaro-Winkler weights shared prefixes heavily,
+# so this mostly won't fire on words that merely share a stem).
+jaro_winkler_threshold: 0.88
+
+# The candidate "dominant form" must occur at least this many times more
+# often than the rare variant being snapped to it -- guards against two
+# similarly-rare terms snapping to each other arbitrarily.
+min_frequency_ratio: 3.0
+
+# Dictionary spell-snapping (dictionary_snap) only applies to terms
+# occurring at most this many times in the whole corpus. Found on real
+# data: without this guard, "malloc" (a real, frequently-used technical
+# term, not in a general-English dictionary) got "corrected" to "mallow"
+# (an unrelated real word one edit away). A typo is inherently rare; real
+# technical jargon repeats -- so gate correction on low frequency rather
+# than trying to build/maintain a technical-term whitelist.
+dictionary_snap_max_frequency: 2
