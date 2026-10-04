@@ -8,15 +8,15 @@ import pickle
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.height_score import compute_height_scores, get_height_config  # noqa: E402
 
 CONVERSATIONS_PATH = PROJECT_ROOT / "data" / "processed" / "conversations.json"
-CONCEPTS_PATH = PROJECT_ROOT / "data" / "processed" / "chat_concepts.json"
-GRAPH_PATH = PROJECT_ROOT / "data" / "processed" / "graph.gpickle"
-OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "height_scores.json"
+CONCEPTS_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "chat_concepts.json"
+GRAPH_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "graph.gpickle"
+OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "height_scores.json"
 
 TOP_PREVIEW_COUNT = 15
 
@@ -26,8 +26,8 @@ def main() -> int:
         (path, script)
         for path, script in [
             (CONVERSATIONS_PATH, "scripts/run_ingest.py"),
-            (CONCEPTS_PATH, "scripts/run_concept_clustering.py"),
-            (GRAPH_PATH, "scripts/run_graph_build.py"),
+            (CONCEPTS_PATH, "scripts/legacy/run_concept_clustering.py"),
+            (GRAPH_PATH, "scripts/legacy/run_graph_build.py"),
         ]
         if not path.is_file()
     ]

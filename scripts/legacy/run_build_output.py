@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
 """Run the full pipeline end-to-end: ingest -> extraction -> concept clustering
--> graph -> layout -> height scores -> merge into data/processed/data.json.
+-> graph -> layout -> height scores -> merge into data/processed/legacy/data.json.
 
 This is the ONE command to run once every earlier stage has been validated
 individually. It deliberately does NOT run phrase detection
-(scripts/run_phrase_detection.py) or recompute concept clustering
-(scripts/run_concept_clustering.py) -- both need a human to review their
+(scripts/legacy/run_phrase_detection.py) or recompute concept clustering
+(scripts/legacy/run_concept_clustering.py) -- both need a human to review their
 output before it's baked into the rest of the pipeline (see CLAUDE.md), so
 they stay separate, manually-triggered gates:
 
-- If data/processed/phrases.json doesn't exist, extraction degrades
+- If data/processed/legacy/phrases.json doesn't exist, extraction degrades
   gracefully to single-word keywords only.
-- If data/processed/concepts.json doesn't exist, this run falls back to one
-  concept per raw keyword (i.e. the old keyword-level graph). Otherwise it
-  reapplies the reviewed keyword->concept mapping to this run's freshly
-  extracted keywords -- cheap, and doesn't require re-embedding/re-
+- If data/processed/legacy/concepts.json doesn't exist, this run falls back
+  to one concept per raw keyword (i.e. the old keyword-level graph).
+  Otherwise it reapplies the reviewed keyword->concept mapping to this run's
+  freshly extracted keywords -- cheap, and doesn't require re-embedding/re-
   clustering (which takes several minutes) on every run.
+
+Writes data/processed/legacy/data.json -- its OWN file, not the current
+pipeline's data/processed/data.json (see LEGACY_OUTPUT_PATH in
+src/build_output.py for why that split matters).
 """
 
 from __future__ import annotations
@@ -27,25 +31,25 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.build_graph import build_cooccurrence_graph, get_graph_config  # noqa: E402
-from src.build_output import OUTPUT_PATH as DATA_JSON_PATH  # noqa: E402
+from src.legacy.build_graph import build_cooccurrence_graph, get_graph_config  # noqa: E402
+from src.build_output import LEGACY_OUTPUT_PATH as DATA_JSON_PATH  # noqa: E402
 from src.build_output import build_final_json, validate_schema  # noqa: E402
-from src.concept_clustering import build_chat_concepts  # noqa: E402
+from src.legacy.concept_clustering import build_chat_concepts  # noqa: E402
 from src.extract_keywords import extract_keywords  # noqa: E402
 from src.height_score import compute_height_scores, get_height_config  # noqa: E402
 from src.ingest import get_last_ingest_stats, load_all_conversations  # noqa: E402
 from src.layout import compute_layout, get_coordinate_range  # noqa: E402
 
 CONVERSATIONS_PATH = PROJECT_ROOT / "data" / "processed" / "conversations.json"
-KEYWORDS_PATH = PROJECT_ROOT / "data" / "processed" / "chat_keywords.json"
-CONCEPTS_SUMMARY_PATH = PROJECT_ROOT / "data" / "processed" / "concepts.json"
-CHAT_CONCEPTS_PATH = PROJECT_ROOT / "data" / "processed" / "chat_concepts.json"
-GRAPH_PATH = PROJECT_ROOT / "data" / "processed" / "graph.gpickle"
-LAYOUT_PATH = PROJECT_ROOT / "data" / "processed" / "layout.json"
-HEIGHT_SCORES_PATH = PROJECT_ROOT / "data" / "processed" / "height_scores.json"
+KEYWORDS_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "chat_keywords.json"
+CONCEPTS_SUMMARY_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "concepts.json"
+CHAT_CONCEPTS_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "chat_concepts.json"
+GRAPH_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "graph.gpickle"
+LAYOUT_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "layout.json"
+HEIGHT_SCORES_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "height_scores.json"
 
 
 def stage_ingest() -> list[dict]:
@@ -84,8 +88,8 @@ def stage_extraction(conversations: list[dict]) -> list[dict]:
 def stage_concept_clustering(chat_keywords: list[dict]) -> list[dict]:
     """Apply concept clustering to this run's freshly extracted keywords.
 
-    Reuses the reviewed mapping in data/processed/concepts.json (produced by
-    a manual scripts/run_concept_clustering.py pass) rather than
+    Reuses the reviewed mapping in data/processed/legacy/concepts.json (produced by
+    a manual scripts/legacy/run_concept_clustering.py pass) rather than
     recomputing embeddings/clustering here -- see module docstring. Falls
     back to one concept per raw keyword if that review hasn't happened yet.
     """
@@ -108,7 +112,7 @@ def stage_concept_clustering(chat_keywords: list[dict]) -> list[dict]:
         chat_concepts = chat_keywords
         print(
             f"[3/7] Concept clustering: {CONCEPTS_SUMMARY_PATH.relative_to(PROJECT_ROOT)} not "
-            "found -- run scripts/run_concept_clustering.py and review its output first. "
+            "found -- run scripts/legacy/run_concept_clustering.py and review its output first. "
             "Falling back to one concept per raw keyword for this run."
         )
 
@@ -131,7 +135,7 @@ def stage_graph_build(chat_concepts: list[dict]):
     print(
         f"[4/7] Graph build: {graph.number_of_nodes()} nodes, "
         f"{graph.number_of_edges()} edges (min_chat_count={min_chat_count}, "
-        f"max_edges_per_node={max_edges_per_node}, config/graph.yaml) "
+        f"max_edges_per_node={max_edges_per_node}, config/legacy/graph.yaml) "
         f"-> {GRAPH_PATH.relative_to(PROJECT_ROOT)}"
     )
     return graph
@@ -151,7 +155,7 @@ def stage_layout(graph) -> dict[str, tuple[float, float]]:
         f"[5/7] Layout: {len(layout)} nodes placed within "
         f"[-{coordinate_range:g}, {coordinate_range:g}] "
         f"-> {LAYOUT_PATH.relative_to(PROJECT_ROOT)} "
-        "(preview PNG not regenerated here -- run scripts/run_layout.py for that)"
+        "(preview PNG not regenerated here -- run scripts/legacy/run_layout.py for that)"
     )
     return layout
 
@@ -214,9 +218,12 @@ def main() -> int:
     print()
     print("Schema validation passed.")
     print()
-    print("BEFORE YOU MOVE ON: data/processed/data.json is the frontend contract.")
-    print("Copy it to frontend/public/data.json yourself when you want the app to")
-    print("pick up this run -- that copy step stays manual on purpose.")
+    print(f"BEFORE YOU MOVE ON: {DATA_JSON_PATH.relative_to(PROJECT_ROOT)} is this legacy")
+    print("pipeline's own output (schema v2) -- a SEPARATE file from the current")
+    print("pipeline's data/processed/data.json (schema v3), on purpose, so running this")
+    print("can never silently clobber what the frontend actually reads. Only copy this")
+    print("one to frontend/public/data.json if you deliberately want to view the old")
+    print("word-level graph instead of the current proximity view.")
 
     return 0
 

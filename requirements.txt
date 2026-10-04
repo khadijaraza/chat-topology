@@ -24,3 +24,22 @@ plotly==7.0.0
 # downloads (torch alone is several hundred MB) but no separate service.
 sentence-transformers==6.1.0
 hdbscan==0.8.44
+
+# src/grounded_extraction.py: symmetric-delete-style dictionary spell
+# correction for typo/shorthand canonicalization ("thrifte" -> "thrift").
+# Small, pure-Python, no ML dependency.
+pyspellchecker==0.9.0
+
+# src/proximity_layout.py: UMAP projection of segment embeddings into 2D
+# world coordinates -- replaces the PMI co-occurrence graph + spring layout
+# for the proximity-based 3-tier visualization. Pulls in numba/llvmlite.
+umap-learn==0.5.12
+
+# src/macro_domains.py: Leiden community detection (Constant Potts Model) on
+# a mutual k-NN graph over segment embeddings -- replaces agglomerative/
+# Ward's fixed-k, hard-coverage clustering. CPM's resolution parameter
+# doesn't suffer Ward's "resolution limit" (real bug: two genuinely distinct
+# communities kept getting forced into one oversized domain regardless of
+# linkage). python-igraph is the graph backend leidenalg operates on.
+leidenalg==0.12.0
+python-igraph==1.0.0

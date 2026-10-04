@@ -16,9 +16,16 @@ single tokens; repeat against the now-partially-merged token stream to
 discover longer phrases (e.g. "machine_learning" + "model" ->
 "machine_learning_model"), up to max_phrase_words passes.
 
-Run via scripts/run_phrase_detection.py to produce data/processed/phrases.json,
-which src/extract_keywords.py then loads to merge detected compounds into
+Run via scripts/legacy/run_phrase_detection.py to produce
+data/processed/legacy/phrases.json, which extract_keywords()
+(src/extract_keywords.py) then loads to merge detected compounds into
 single keywords during extraction (see segment_with_phrases there).
+
+Superseded: part of the original word-level pipeline (see CLAUDE.md's
+"Pipeline reconstruction"). Kept, not deleted -- validated working code.
+extract_keywords.py itself stays in src/ root (not legacy) since
+src.grounded_extraction (current pipeline) shares several of its NLP
+helpers -- only this corpus-level phrase-merging step is legacy-only.
 """
 
 from __future__ import annotations
@@ -33,8 +40,8 @@ import yaml
 
 from src.extract_keywords import apply_word_alias, get_nlp, get_stopwords
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "phrase_detection.yaml"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_CONFIG_PATH = PROJECT_ROOT / "config" / "legacy" / "phrase_detection.yaml"
 
 DEFAULT_MIN_PAIR_COUNT = 5
 DEFAULT_MIN_NPMI = 0.55
@@ -209,7 +216,7 @@ def is_contiguous_subsequence(shorter: tuple[str, ...], longer: tuple[str, ...])
 def prune_redundant_phrases(hits: list[PhraseHit], *, redundancy_ratio: float) -> list[PhraseHit]:
     """Drop a shorter phrase when a longer accepted phrase contains it and
     accounts for almost all of its occurrences (see redundancy_ratio in
-    config/phrase_detection.yaml). Phrases that also occur independently of
+    config/legacy/phrase_detection.yaml). Phrases that also occur independently of
     any longer phrase are kept, even if they're sometimes a sub-span of one.
     """
     by_length = sorted(hits, key=lambda hit: len(hit["words"]))

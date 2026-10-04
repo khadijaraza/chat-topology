@@ -2,8 +2,9 @@
 """Group extracted keywords into semantic concepts.
 
 Run this between run_extraction.py and run_graph_build.py. Its output,
-data/processed/chat_concepts.json, has the same shape as chat_keywords.json
-but with each keyword hit re-keyed to its concept label -- graph build then
+data/processed/legacy/chat_concepts.json, has the same shape as
+data/processed/legacy/chat_keywords.json but with each keyword hit re-keyed
+to its concept label -- graph build then
 treats concepts exactly like it used to treat raw keywords, so node
 identity (and every downstream stage) now runs on semantic groups instead
 of individual keywords.
@@ -16,18 +17,18 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.concept_clustering import (  # noqa: E402
+from src.legacy.concept_clustering import (  # noqa: E402
     build_chat_concepts,
     cluster_keywords_into_concepts,
     get_concept_config,
 )
 
-KEYWORDS_PATH = PROJECT_ROOT / "data" / "processed" / "chat_keywords.json"
-CHAT_CONCEPTS_PATH = PROJECT_ROOT / "data" / "processed" / "chat_concepts.json"
-CONCEPTS_SUMMARY_PATH = PROJECT_ROOT / "data" / "processed" / "concepts.json"
+KEYWORDS_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "chat_keywords.json"
+CHAT_CONCEPTS_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "chat_concepts.json"
+CONCEPTS_SUMMARY_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "concepts.json"
 
 TOP_PREVIEW_COUNT = 25
 MEMBERS_PREVIEW_COUNT = 12
@@ -36,7 +37,7 @@ MEMBERS_PREVIEW_COUNT = 12
 def main() -> int:
     if not KEYWORDS_PATH.is_file():
         print(f"ERROR: Missing input file: {KEYWORDS_PATH}", file=sys.stderr)
-        print("Run scripts/run_extraction.py first.", file=sys.stderr)
+        print("Run scripts/legacy/run_extraction.py first.", file=sys.stderr)
         return 1
 
     with KEYWORDS_PATH.open(encoding="utf-8") as handle:
@@ -102,10 +103,10 @@ def main() -> int:
 
     print()
     print("BEFORE YOU MOVE ON: skim the groupings above (or the full")
-    print("data/processed/concepts.json). These clusters become graph nodes --")
+    print("data/processed/legacy/concepts.json). These clusters become graph nodes --")
     print("keywords that shouldn't be together (or should be but aren't) will")
     print("propagate into every downstream node/edge. Tune min_cluster_size /")
-    print("min_samples in config/concept_clustering.yaml and rerun if something")
+    print("min_samples in config/legacy/concept_clustering.yaml and rerun if something")
     print("looks wrong. Nothing downstream has been rewired to use this yet.")
 
     return 0

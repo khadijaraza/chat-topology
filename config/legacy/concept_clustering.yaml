@@ -48,3 +48,24 @@ min_cluster_size: 2
 # purpose so small clusters still have to be genuinely dense, not just
 # barely-not-noise pairs.
 min_samples: 3
+
+# Only used by cluster_segment_keywords_into_concepts's
+# label_concepts_by_specificity (Phase 3's segment-keyed pathway): a
+# multiplier applied to a candidate label's score if it was extracted as a
+# named entity (WORK_OF_ART/PERSON/ORG/GPE -- see ENTITY_LABELS_BOOSTED).
+# Chat-frequency labeling tends to pick generic abstract terms ("tragic
+# foreshadowing", "discussion") over specific domain anchors ("plato's
+# symposium") since generic terms sit closer to a cluster's geometric
+# center; this nudges named entities to win even when they're not exactly
+# centroid-closest.
+entity_label_multiplier: 1.3
+
+# A member term must appear in at least this many segments to be ELIGIBLE
+# as its concept's label (still a cluster member either way, just not the
+# representative). Without this, the inverse-segment-frequency scoring in
+# label_concepts_by_specificity rewards ALL rarity, not just genuine domain
+# specificity -- on real data it picked "sam jose" (a literal typo of "san
+# jose", appearing in exactly 1 segment) as a label over the correctly-
+# spelled, far more common "san jose", purely because being rare inflated
+# its specificity score.
+min_label_segment_frequency: 2

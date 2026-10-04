@@ -1,13 +1,18 @@
 """Group concept nodes into a small, fixed number of broader super-topics.
 
 A second, coarser clustering pass on top of the concept layer
-(src/concept_clustering.py): concept labels are embedded and grouped with
-agglomerative clustering targeting a fixed, small cluster count (unlike
+(src/legacy/concept_clustering.py): concept labels are embedded and grouped
+with agglomerative clustering targeting a fixed, small cluster count (unlike
 HDBSCAN's natural-count density clustering used for concepts), so the graph
 has a legible, <100-node "zoomed out" view. Every concept is assigned to
 exactly one super-topic -- there's no unclustered/noise bucket at this
 layer, since a hard count cap and "some concepts left ungrouped" are in
-tension (see config/supertopic_clustering.yaml).
+tension (see config/legacy/supertopic_clustering.yaml).
+
+Superseded: replaced by the current pipeline's top tier (Macro Domains,
+src/macro_domains.py -- same agglomerative/ward approach, but clustering
+Conversation Concept centroids instead of word-concept embeddings). Kept,
+not deleted -- see CLAUDE.md's "Pipeline reconstruction".
 """
 
 from __future__ import annotations
@@ -19,12 +24,12 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from src.concept_clustering import embed_terms
+from src.legacy.concept_clustering import embed_terms
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_SUPERTOPIC_CONFIG_PATH = PROJECT_ROOT / "config" / "supertopic_clustering.yaml"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+DEFAULT_SUPERTOPIC_CONFIG_PATH = PROJECT_ROOT / "config" / "legacy" / "supertopic_clustering.yaml"
 
-# Fallbacks used only if config/supertopic_clustering.yaml is missing or malformed.
+# Fallbacks used only if config/legacy/supertopic_clustering.yaml is missing or malformed.
 FALLBACK_MODEL_NAME = "all-mpnet-base-v2"
 FALLBACK_N_CLUSTERS = 80
 FALLBACK_LINKAGE = "average"
@@ -32,7 +37,7 @@ FALLBACK_LINKAGE = "average"
 
 @lru_cache(maxsize=1)
 def get_supertopic_config(path: str = str(DEFAULT_SUPERTOPIC_CONFIG_PATH)) -> dict:
-    """Load embedding/clustering settings from config/supertopic_clustering.yaml."""
+    """Load embedding/clustering settings from config/legacy/supertopic_clustering.yaml."""
     config_path = Path(path)
     if not config_path.is_file():
         return {

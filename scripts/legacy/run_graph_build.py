@@ -8,13 +8,13 @@ import json
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.build_graph import build_cooccurrence_graph, get_graph_config, top_weighted_edges  # noqa: E402
+from src.legacy.build_graph import build_cooccurrence_graph, get_graph_config, top_weighted_edges  # noqa: E402
 
-CONCEPTS_PATH = PROJECT_ROOT / "data" / "processed" / "chat_concepts.json"
-OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "graph.gpickle"
+CONCEPTS_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "chat_concepts.json"
+OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "graph.gpickle"
 
 
 def save_graph(graph, path: Path) -> str:
@@ -34,20 +34,20 @@ def main() -> int:
         type=int,
         default=None,
         help=f"Drop keywords appearing in fewer than this many chats "
-        f"(default: config/graph.yaml's min_chat_count={config_min_chat_count}).",
+        f"(default: config/legacy/graph.yaml's min_chat_count={config_min_chat_count}).",
     )
     parser.add_argument(
         "--max-edges-per-node",
         type=int,
         default=None,
         help="Keep only each node's strongest N edges by weight "
-        f"(default: config/graph.yaml's max_edges_per_node={config_max_edges_per_node}).",
+        f"(default: config/legacy/graph.yaml's max_edges_per_node={config_max_edges_per_node}).",
     )
     args = parser.parse_args()
 
     if not CONCEPTS_PATH.is_file():
         print(f"ERROR: Missing input file: {CONCEPTS_PATH}", file=sys.stderr)
-        print("Run scripts/run_concept_clustering.py first.", file=sys.stderr)
+        print("Run scripts/legacy/run_concept_clustering.py first.", file=sys.stderr)
         return 1
 
     with CONCEPTS_PATH.open(encoding="utf-8") as handle:

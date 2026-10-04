@@ -1,4 +1,16 @@
-"""Extract condensed topical keywords from normalized conversations using spaCy."""
+"""Extract condensed topical keywords from normalized conversations using spaCy.
+
+Mixed file, stays in src/ root rather than moving to src/legacy/: several
+NLP helpers here (get_nlp, get_stopwords, is_valid_term, normalize_phrase,
+normalize_token_lemma, content_nouns_in_span, MULTI_WORD_ENTITY_LABELS) are
+shared -- src/grounded_extraction.py (current pipeline) imports them
+directly rather than duplicating spaCy pipeline setup, stopword filtering,
+and SPECIFICITY_PATTERNS-based validity checks. extract_keywords() itself
+(the whole-chat, frequency-ranked entrypoint that ties those helpers
+together) is legacy-only, called only by scripts/legacy/run_extraction.py
+and scripts/legacy/run_build_output.py -- superseded by
+src/grounded_extraction.py's per-segment, similarity-ranked extraction.
+"""
 
 from __future__ import annotations
 
@@ -15,7 +27,7 @@ from spacy.language import Language
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_STOPWORDS_PATH = PROJECT_ROOT / "config" / "keyword_stopwords.yaml"
-DEFAULT_PHRASES_PATH = PROJECT_ROOT / "data" / "processed" / "phrases.json"
+DEFAULT_PHRASES_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "phrases.json"
 DEFAULT_ALIASES_PATH = PROJECT_ROOT / "config" / "keyword_aliases.yaml"
 
 MULTI_WORD_ENTITY_LABELS = {
@@ -135,6 +147,13 @@ SPECIFICITY_PATTERNS = (
     re.compile(r"[{}<>]"),  # LaTeX groups / dict-set literals / HTML tags
     re.compile(r'["`]'),  # code-style string quoting
     re.compile(r"[\[\]]"),  # code array/index literals
+    # Found on real segment-level extraction (Phase 2/3 of the pipeline
+    # reconstruction): function-call fragments like `pish(stdin`,
+    # `realloc(word` slipped through since literal parentheses were never
+    # in this list. Natural-language noun phrases essentially never
+    # contain "(" or ")" -- unlike underscores/brackets/braces above,
+    # there's no legitimate prose case this would over-match.
+    re.compile(r"[()]"),
 )
 
 
@@ -164,12 +183,12 @@ def get_stopwords(path: str = str(DEFAULT_STOPWORDS_PATH)) -> frozenset[str]:
 
 @lru_cache(maxsize=1)
 def get_phrase_lookup(path: str = str(DEFAULT_PHRASES_PATH)) -> tuple[dict[tuple[str, ...], str], int]:
-    """Load corpus-level phrases detected by src/phrase_detection.py.
+    """Load corpus-level phrases detected by src/legacy/phrase_detection.py.
 
     Returns (lookup, max_phrase_len): lookup maps a tuple of consecutive
     lemma words -> the canonical phrase string to emit for them (e.g.
     ("machine", "learning") -> "machine learning"). If phrases.json hasn't
-    been generated yet (scripts/run_phrase_detection.py hasn't run), this
+    been generated yet (scripts/legacy/run_phrase_detection.py hasn't run), this
     degrades gracefully to an empty lookup -- extraction still works, it
     just won't merge multi-word compounds beyond what spaCy's own NER
     entities give it.

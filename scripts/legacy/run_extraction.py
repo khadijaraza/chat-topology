@@ -8,13 +8,13 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.extract_keywords import extract_keywords  # noqa: E402
 
 CONVERSATIONS_PATH = PROJECT_ROOT / "data" / "processed" / "conversations.json"
-OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "chat_keywords.json"
+OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "legacy" / "chat_keywords.json"
 
 
 def main() -> int:

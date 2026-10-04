@@ -63,6 +63,23 @@ canvas {
   background: rgba(255, 179, 71, 0.3);
 }
 
+.terrain-toggle {
+  display: block;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: rgba(47, 122, 99, 0.2);
+  border: 1px solid rgba(47, 122, 99, 0.6);
+  border-radius: 4px;
+  color: #6fcfae;
+  font-size: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.terrain-toggle:hover {
+  background: rgba(47, 122, 99, 0.35);
+}
+
 .node-label {
   padding: 3px 8px;
   background: rgba(15, 17, 30, 0.9);

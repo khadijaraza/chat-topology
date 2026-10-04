@@ -1,0 +1,44 @@
+# Step 4 of the proximity-based 3-tier reconstruction (see CLAUDE.md's "Key
+# decisions" -> "Pipeline reconstruction"). Projects segment embeddings into
+# 2D world coordinates via UMAP -- replaces the PMI co-occurrence graph +
+# spring layout (src/layout.py) entirely for this pathway; that module is
+# kept for the superseded word-level pipeline, not reused here beyond its
+# generic normalize_positions() helper.
+
+# UMAP's own tunables. Larger n_neighbors favors preserving global/macro
+# structure over fine local detail -- important here since positions need to
+# stay legible across all 3 zoom tiers (segment/concept/domain), not just at
+# the most granular level. Smaller min_dist packs genuinely similar segments
+# tighter, which matters for the mid-tier Conversation Concepts (themselves
+# HDBSCAN clusters, i.e. already-tight neighborhoods) to visually read as
+# clusters rather than a diffuse haze.
+#
+# Tightened from the defaults (15 / 0.1) after reviewing the real scatter
+# preview -- improved how distinctly each macro domain's own points cluster
+# together locally. Real, un-fixed limitation found either way (see
+# CLAUDE.md's Step 4 entry): only the hard-STEM/CS domains ("frequency
+# domain analysis", "c code"/"strong induction") separate into fully
+# isolated regions: the other ~9 "everyday life" domains (travel, skincare,
+# family admin, course planning, ...) all share one large, continuous
+# region regardless of these two values -- a property of how
+# all-mpnet-base-v2 embeds informal/personal language, not something UMAP
+# tuning alone resolves.
+umap_n_neighbors: 10
+umap_min_dist: 0.05
+
+# Cosine distance, not Euclidean -- matches every other clustering step in
+# this pipeline (conversation_concepts.py, macro_domains.py, concept
+# clustering) and how sentence-transformers embeddings are meant to be
+# compared: only direction carries semantic meaning, magnitude doesn't.
+umap_metric: cosine
+
+# Tangent-pull: blends a "tangent"-labeled segment's UMAP position slightly
+# toward its own chat's "core" segment position, so a brief aside still
+# visually reads as belonging to its parent conversation even though
+# proximity (not an edge) is now the only signal connecting them.
+# P_final = (1 - alpha) * P_tangent + alpha * P_core_centroid
+# 0 disables the pull entirely (tangents sit exactly where their own
+# semantic content places them). 0.15 is a light nudge, not a snap --
+# tangents should still separate from their core when genuinely
+# off-topic; this only pulls borderline cases back toward legibility.
+tangent_pull_alpha: 0.15
